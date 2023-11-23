@@ -1,23 +1,20 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Sun Sep 27 18:45:08 2020
+import asyncio
 
-@author: Antonio Fernández Ares (antares@ugr.es)
+async def send_text():
+    reader, writer = await asyncio.open_connection('127.0.0.1', 8888)
 
-Ejemplo Sockets: Cliente
-"""
+    while True:
+        message = input("Ingrese un mensaje (o escriba 'exit' para salir): ")
+        writer.write(message.encode())
 
-import socket
+        if message.lower() == 'exit':
+            print("Cerrando la conexión con el servidor.")
+            break
 
-host = socket.gethostname()
-port = 12345
+        data = await reader.read(100)
+        response = data.decode()
+        print(f"Recibido del servidor: {response}")
 
-BUFFER_SIZE = 1024
+    writer.close()
 
-MESSAGE = "Hola mundo" #Esto es lo que vamos a enviar
-
-with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as socket_tcp:
-	socket_tcp.connect((host,port))
-	socket_tcp.send(MESSAGE.encode("utf-8"))
-	data = socket_tcp.recv(BUFFER_SIZE)
-	print(data.decode("utf-8"))
+asyncio.run(send_text())

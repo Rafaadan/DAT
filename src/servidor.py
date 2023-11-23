@@ -1,37 +1,31 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Sun Sep 27 18:45:08 2020
+import asyncio
 
-@author: Antonio Fernández Ares (antares@ugr.es)
+async def handle_client(reader, writer):
+    while True:
+        data = await reader.read(100)
+        message = data.decode()
+        addr = writer.get_extra_info('peername')
 
-Ejemplo Sockets: Servidor
-"""
+        print(f"Received {message} from {addr}")
 
-import socket
+        if message.lower() == 'exit':
+            print("Closing the connection")
+            writer.close()
+            await writer.wait_closed()
+            break
 
-host = socket.gethostname()
+        response = f"Received: {message}"
+        writer.write(response.encode())
+        await writer.drain()
 
-port = 12345
+async def main():
+    server = await asyncio.start_server(
+        handle_client, '127.0.0.1', 8888)
 
-BUFFER_SIZE = 1024
+    addr = server.sockets[0].getsockname()
+    print(f'Serving on {addr}')
 
-with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as socket_tcp:
-	socket_tcp.bind((host,port))
-	socket_tcp.listen(5)
-	conn,addr = socket_tcp.accept()
+    async with server:
+        await server.serve_forever()
 
-	with conn:
-		print("[*] Conexión establecida")
-		while True:
-			data = conn.recv(BUFFER_SIZE)
-			if not data:
-				break
-			else:
-				print("[*] Datos recibidos {}".format(data.decode('utf-8')))
-			conn.send(data) #Mandamos un echo
-
-
-#¿Qué cambiamos para que funcione en otra máquina?
-#El cliente puede comenzar un envío de  un número indeterminado de bytes en  cualquier momento (asíncrono).
-#¿Cómo sabe el servidor que el envío  de datos ha finalizado y que no quedan  datos pendientes?
-#Normalmente, un servidor maneja  múltiples conexiones al mismo tiempo  mediante concurrencia o paralelismo.  Véase la implementación para  conexiones múltiples en  https://unipython.com/programacion-  de-redes-en-python-sockets/
+asyncio.run(main())
